@@ -11,6 +11,7 @@ interface TerminalProps {
 
 export interface TerminalHandle {
   sendCommand: (cmd: string) => void
+  fit: () => void
 }
 
 const TERMINAL_THEME = {
@@ -51,6 +52,9 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Termi
   useImperativeHandle(ref, () => ({
     sendCommand: (cmd: string) => {
       window.electron.terminal.sendData(connectionId, cmd)
+    },
+    fit: () => {
+      requestAnimationFrame(() => fitAddonRef.current?.fit())
     }
   }), [connectionId])
 

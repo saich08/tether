@@ -60,7 +60,7 @@ export function TitleBar({ connection, onNewConnection, onDisconnect }: TitleBar
           <button
             onClick={onDisconnect}
             className="btn-danger text-xs px-2 py-1 rounded"
-            title="Disconnect"
+            title="Disconnect current session"
           >
             <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
               <path d="M5.5 7a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5z" />
