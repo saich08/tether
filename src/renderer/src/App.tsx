@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { TitleBar } from './components/TitleBar'
 import { ConnectionDialog } from './components/ConnectionDialog'
 import { SplitPane } from './components/SplitPane'
@@ -34,6 +34,17 @@ export default function App(): JSX.Element {
 
   const handleOpenInVSCode = useCallback((connectionId: string, path: string) => {
     window.electron.shell.openVSCode({ connectionId, path })
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault()
+        setShowConnectionDialog(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   return (
