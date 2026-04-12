@@ -1,6 +1,6 @@
 {
   "name": "tether",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Cross-platform SSH client with terminal and file explorer",
   "main": "out/main/index.js",
   "homepage": "https://github.com/saich08/tether",
