@@ -4,17 +4,20 @@ import { randomUUID } from 'crypto'
 import type {
   SSHCredentials,
   SSHConnection,
-  ConnectionStatus,
   FileEntry,
   DirectoryListing,
   TerminalDimensions
 } from '../shared/types'
 
+interface ShellStream extends NodeJS.ReadableStream, NodeJS.WritableStream {
+  setWindow(rows: number, cols: number, height: number, width: number): void
+}
+
 interface ActiveSession {
   connection: SSHConnection
   client: Client
   sftp?: SFTPWrapper
-  shell?: NodeJS.ReadableStream & NodeJS.WritableStream
+  shell?: ShellStream
 }
 
 export class SSHManager extends EventEmitter {
@@ -111,7 +114,7 @@ export class SSHManager extends EventEmitter {
         (err, stream) => {
           if (err) return reject(err)
 
-          session.shell = stream as NodeJS.ReadableStream & NodeJS.WritableStream
+          session.shell = stream as unknown as ShellStream
 
           stream.on('data', (chunk: Buffer) => {
             onData(chunk.toString('utf8'))
@@ -140,7 +143,7 @@ export class SSHManager extends EventEmitter {
   resizeShell(connectionId: string, dimensions: TerminalDimensions): void {
     const session = this.sessions.get(connectionId)
     if (!session?.shell) return
-    ;(session.shell as any).setWindow(dimensions.rows, dimensions.cols, 0, 0)
+    session.shell.setWindow(dimensions.rows, dimensions.cols, 0, 0)
   }
 
   // ─── SFTP ─────────────────────────────────────────────────────────────────
