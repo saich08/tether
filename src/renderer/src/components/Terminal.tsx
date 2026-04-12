@@ -138,7 +138,6 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Termi
       cleanupRef.current = null
       shellOpenedRef.current = false
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionId])
 
   const handleSearch = useCallback(
