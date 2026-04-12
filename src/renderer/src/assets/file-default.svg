@@ -1,0 +1,27 @@
+<!--
+  File illustration for Tether.
+  License: CC0-1.0 (public domain dedication)
+  You can use, modify, and redistribute this file without attribution.
+-->
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="File">
+  <defs>
+    <linearGradient id="paperFill" x1="118" y1="88" x2="376" y2="396" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#74B9FF"/>
+      <stop offset="1" stop-color="#74B9FF"/>
+    </linearGradient>
+    <filter id="softShadow" x="84" y="52" width="344" height="376" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#1E4975" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#softShadow)">
+    <path d="M140 72C140 63.1634 147.163 56 156 56H292.373C296.616 56 300.686 57.6857 303.686 60.6863L370.314 127.314C373.314 130.314 375 134.384 375 138.627V396C375 404.837 367.837 412 359 412H156C147.163 412 140 404.837 140 396V72Z" fill="url(#paperFill)"/>
+
+    <path d="M292 56V122C292 130.837 299.163 138 308 138H375" stroke="#74B9FF" stroke-opacity="0.72" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter"/>
+
+    <path d="M180 188H332" stroke="#3A7FBF" stroke-width="10" stroke-linecap="butt"/>
+    <path d="M180 232H332" stroke="#3A7FBF" stroke-width="10" stroke-linecap="butt"/>
+    <path d="M180 276H318" stroke="#3A7FBF" stroke-width="10" stroke-linecap="butt"/>
+    <path d="M180 320H296" stroke="#3A7FBF" stroke-width="10" stroke-linecap="butt"/>
+  </g>
+</svg>

@@ -1,0 +1,35 @@
+<!--
+  Closed folder illustration for Tether.
+  License: CC0-1.0 (public domain dedication)
+  You can use, modify, and redistribute this file without attribution.
+-->
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Closed folder">
+  <defs>
+    <linearGradient id="bodyBack" x1="76" y1="112" x2="430" y2="236" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D4AA6B"/>
+      <stop offset="1" stop-color="#D4AA6B"/>
+    </linearGradient>
+    <linearGradient id="bodyFront" x1="58" y1="186" x2="442" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D4AA6B"/>
+      <stop offset="0.55" stop-color="#D4AA6B"/>
+      <stop offset="1" stop-color="#D4AA6B"/>
+    </linearGradient>
+    <linearGradient id="flap" x1="56" y1="192" x2="456" y2="248" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D4AA6B"/>
+      <stop offset="1" stop-color="#D4AA6B"/>
+    </linearGradient>
+    <filter id="softShadow" x="28" y="74" width="456" height="358" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#5C3A16" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#softShadow)">
+    <path d="M74 160C74 142.327 88.3269 128 106 128H218.402C225.718 128 232.833 125.494 238.548 120.899L264.452 100.101C270.167 95.5058 277.282 93 284.598 93H406C423.673 93 438 107.327 438 125V173H74V160Z" fill="url(#bodyBack)"/>
+    <path d="M56 214C56 196.327 70.3269 182 88 182H425.092C444.217 182 458.138 200.201 453.117 218.656L419.305 342.937C415.552 356.733 403.025 366.291 388.727 366.291H104.526C89.0057 366.291 75.6622 355.735 72.3085 340.581L56.8858 270.898C56.2975 268.24 56 265.525 56 262.803V214Z" fill="url(#bodyFront)"/>
+
+    <path d="M56 224L170 195H442C448.627 195 454 200.373 454 207V215C454 221.627 448.627 227 442 227H238L124 256H72C63.1634 256 56 248.837 56 240V224Z" fill="url(#flap)"/>
+    <path d="M170 195H442" stroke="#D4AA6B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M124 256L238 227" stroke="#D4AA6B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  </g>
+</svg>

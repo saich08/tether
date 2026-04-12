@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #0e1020;
+    color: #c8cfe8;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2a2f4a;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3d4470;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium
+           transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent-500/50;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent-600 hover:bg-accent-500 text-white;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-surface-800 text-surface-300 hover:text-surface-100;
+  }
+
+  .btn-danger {
+    @apply btn bg-transparent hover:bg-danger/20 text-surface-300 hover:text-danger;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 rounded-md bg-surface-900 border border-surface-800
+           text-surface-100 placeholder-surface-400 text-sm
+           focus:outline-none focus:ring-2 focus:ring-accent-500/50 focus:border-accent-500/50
+           transition-colors duration-150;
+  }
+
+  .panel {
+    @apply bg-surface-900 border border-surface-800 rounded-lg;
+  }
+
+  .resizer {
+    @apply bg-surface-800 hover:bg-accent-500/40 transition-colors duration-150 cursor-col-resize;
+    width: 4px;
+    flex-shrink: 0;
+  }
+
+  .tab {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium
+           transition-colors duration-150 cursor-pointer select-none;
+  }
+
+  .tab-active {
+    @apply tab bg-surface-800 text-surface-100;
+  }
+
+  .tab-inactive {
+    @apply tab text-surface-400 hover:text-surface-200 hover:bg-surface-800/50;
+  }
+}
+
+/* xterm.js overrides */
+.xterm-viewport {
+  border-radius: 0 !important;
+}
+
+.xterm .xterm-screen {
+  padding: 8px !important;
+}
