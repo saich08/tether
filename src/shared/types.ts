@@ -85,6 +85,7 @@ export const IPC = {
   SFTP_MKDIR: "sftp:mkdir",
   SFTP_RENAME: "sftp:rename",
   SFTP_STAT: "sftp:stat",
+  SFTP_COPY: "sftp:copy",
 
   // File editor
   SFTP_READ_FILE: "sftp:read-file",
@@ -135,6 +136,12 @@ export interface SFTPRenameRequest {
   connectionId: string;
   oldPath: string;
   newPath: string;
+}
+
+export interface SFTPCopyRequest {
+  connectionId: string;
+  sourcePath: string;
+  destPath: string;
 }
 
 export interface SFTPReadFileRequest {

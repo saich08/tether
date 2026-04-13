@@ -9,6 +9,7 @@ import type {
   SFTPDeleteRequest,
   SFTPMkdirRequest,
   SFTPRenameRequest,
+  SFTPCopyRequest,
   SFTPReadFileRequest,
   SFTPWriteFileRequest,
   TerminalDimensions,
@@ -81,6 +82,9 @@ const electronAPI = {
 
     rename: (req: SFTPRenameRequest): Promise<IPCResult> =>
       ipcRenderer.invoke(IPC.SFTP_RENAME, req),
+
+    copy: (req: SFTPCopyRequest): Promise<IPCResult> =>
+      ipcRenderer.invoke(IPC.SFTP_COPY, req),
 
     readFile: (req: SFTPReadFileRequest): Promise<IPCResult<string>> =>
       ipcRenderer.invoke(IPC.SFTP_READ_FILE, req),

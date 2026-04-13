@@ -80,6 +80,10 @@ export function FileExplorer({
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [clipboard, setClipboard] = useState<{
+    entry: FileEntry;
+    action: "copy" | "cut";
+  } | null>(null);
   const [editingFile, setEditingFile] = useState<FileEntry | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -224,6 +228,89 @@ export function FileExplorer({
     if (result.ok) loadDirectory(currentPath);
     else alert(result.error);
   };
+
+  const generatePasteName = (
+    name: string,
+    isDirectory: boolean,
+    existingNames: Set<string>,
+  ): string => {
+    if (!existingNames.has(name)) return name;
+    const dotIdx = !isDirectory ? name.lastIndexOf(".") : -1;
+    const stem = dotIdx > 0 ? name.slice(0, dotIdx) : name;
+    const ext = dotIdx > 0 ? name.slice(dotIdx) : "";
+    const candidate = `${stem} copy${ext}`;
+    if (!existingNames.has(candidate)) return candidate;
+    for (let i = 2; ; i++) {
+      const c = `${stem} copy ${i}${ext}`;
+      if (!existingNames.has(c)) return c;
+    }
+  };
+
+  const handleCopy = (entry: FileEntry): void => {
+    setClipboard({ entry, action: "copy" });
+  };
+
+  const handleCut = (entry: FileEntry): void => {
+    setClipboard({ entry, action: "cut" });
+  };
+
+  const handlePaste = async (): Promise<void> => {
+    if (!clipboard) return;
+    const { entry, action } = clipboard;
+    const existingNames = new Set(entries.map((e) => e.name));
+    const destName = generatePasteName(
+      entry.name,
+      entry.isDirectory,
+      existingNames,
+    );
+    const destPath = `${currentPath === "/" ? "" : currentPath}/${destName}`;
+
+    if (action === "cut") {
+      const result = await window.electron.sftp.rename({
+        connectionId,
+        oldPath: entry.path,
+        newPath: destPath,
+      });
+      if (result.ok) {
+        setClipboard(null);
+        loadDirectory(currentPath);
+      } else {
+        alert(result.error);
+      }
+    } else {
+      const result = await window.electron.sftp.copy({
+        connectionId,
+        sourcePath: entry.path,
+        destPath,
+      });
+      if (result.ok) {
+        loadDirectory(currentPath);
+      } else {
+        alert(result.error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key === "c" && selectedEntry) {
+        e.preventDefault();
+        handleCopy(selectedEntry);
+      } else if (ctrl && e.key === "x" && selectedEntry) {
+        e.preventDefault();
+        handleCut(selectedEntry);
+      } else if (ctrl && e.key === "v" && clipboard) {
+        e.preventDefault();
+        handlePaste();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEntry, clipboard, entries]);
 
   const openContextMenu = (e: React.MouseEvent, entry: FileEntry): void => {
     e.preventDefault();
@@ -444,7 +531,7 @@ export function FileExplorer({
                       selected === entry.path
                         ? "bg-accent-600/15 border-l-2 border-accent-500"
                         : "hover:bg-surface-800/40 border-l-2 border-transparent"
-                    }`}
+                    } ${clipboard?.action === "cut" && clipboard.entry.path === entry.path ? "opacity-40" : ""}`}
                     onClick={() => selectEntry(entry)}
                     onDoubleClick={() => navigate(entry)}
                     onContextMenu={(e) => openContextMenu(e, entry)}
@@ -557,7 +644,7 @@ export function FileExplorer({
                       selected === entry.path
                         ? "bg-accent-600/15 border-l-2 border-accent-500"
                         : "hover:bg-surface-800/40 border-l-2 border-transparent"
-                    }`}
+                    } ${clipboard?.action === "cut" && clipboard.entry.path === entry.path ? "opacity-40" : ""}`}
                     onClick={() => selectEntry(entry)}
                     onDoubleClick={() => navigate(entry)}
                     onContextMenu={(e) => openContextMenu(e, entry)}
@@ -695,6 +782,7 @@ export function FileExplorer({
                           key={entry.path}
                           entry={entry}
                           selected={selected}
+                          isCut={clipboard?.action === "cut" && clipboard.entry.path === entry.path}
                           renaming={renaming}
                           renameValue={renameValue}
                           renameInputRef={renameInputRef}
@@ -729,6 +817,7 @@ export function FileExplorer({
                           key={entry.path}
                           entry={entry}
                           selected={selected}
+                          isCut={clipboard?.action === "cut" && clipboard.entry.path === entry.path}
                           renaming={renaming}
                           renameValue={renameValue}
                           renameInputRef={renameInputRef}
@@ -804,6 +893,22 @@ export function FileExplorer({
                     ? () => {
                         closeContextMenu();
                         setEditingFile(cm.entry);
+                      }
+                    : undefined
+                }
+                onCopy={() => {
+                  closeContextMenu();
+                  handleCopy(cm.entry);
+                }}
+                onCut={() => {
+                  closeContextMenu();
+                  handleCut(cm.entry);
+                }}
+                onPaste={
+                  clipboard
+                    ? () => {
+                        closeContextMenu();
+                        handlePaste();
                       }
                     : undefined
                 }
@@ -939,6 +1044,7 @@ function PropertiesPane({
 interface GridTileProps {
   entry: FileEntry;
   selected: string | null;
+  isCut: boolean;
   renaming: string | null;
   renameValue: string;
   renameInputRef: React.RefObject<HTMLInputElement>;
@@ -957,6 +1063,7 @@ interface GridTileProps {
 function GridTile({
   entry,
   selected,
+  isCut,
   renaming,
   renameValue,
   renameInputRef,
@@ -977,7 +1084,7 @@ function GridTile({
         selected === entry.path
           ? "bg-accent-600/20 ring-1 ring-accent-500/50"
           : "hover:bg-surface-800/50"
-      }`}
+      } ${isCut ? "opacity-40" : ""}`}
       onClick={() => onSelect(entry)}
       onDoubleClick={() => onNavigate(entry)}
       onContextMenu={(e) => onContextMenu(e, entry)}
@@ -1077,6 +1184,9 @@ interface ContextMenuPopupProps {
   entry: FileEntry;
   onClose: () => void;
   onEdit?: () => void;
+  onCopy: () => void;
+  onCut: () => void;
+  onPaste?: () => void;
   onRename: () => void;
   onDelete: () => void;
   onDownload: () => void;
@@ -1089,6 +1199,9 @@ function ContextMenuPopup({
   y,
   entry,
   onEdit,
+  onCopy,
+  onCut,
+  onPaste,
   onRename,
   onDelete,
   onDownload,
@@ -1196,6 +1309,41 @@ function ContextMenuPopup({
           }
         />
       )}
+
+      <div className="my-0.5 border-t border-surface-800" />
+
+      <Item
+        label="Copy"
+        onClick={onCopy}
+        icon={
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="flex-shrink-0">
+            <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2z"/>
+          </svg>
+        }
+      />
+      <Item
+        label="Cut"
+        onClick={onCut}
+        icon={
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="flex-shrink-0">
+            <path d="M3.5 3.5c-.614-.884-.074-1.962.858-2.5L8 7.226 11.642 1c.932.538 1.472 1.616.858 2.5L8.81 8.61l1.556 2.661a2.5 2.5 0 1 1-.794.637L8 9.73l-1.572 2.177a2.5 2.5 0 1 1-.794-.637L7.19 8.61 3.5 3.5zm2.5 10a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm7 0a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"/>
+          </svg>
+        }
+      />
+      {onPaste && (
+        <Item
+          label="Paste here"
+          onClick={onPaste}
+          icon={
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="flex-shrink-0">
+              <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+              <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+            </svg>
+          }
+        />
+      )}
+
+      <div className="my-0.5 border-t border-surface-800" />
 
       <Item
         label="Rename"
