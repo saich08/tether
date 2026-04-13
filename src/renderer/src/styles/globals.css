@@ -2,6 +2,131 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Themes ───────────────────────────────────────────────────────────────── */
+
+/* Default — purple/navy (original) */
+:root,
+[data-theme="default"] {
+  --surface-50:  248 249 252;
+  --surface-100: 240 242 248;
+  --surface-200: 226 230 243;
+  --surface-300: 200 207 232;
+  --surface-400: 168 179 216;
+  --surface-500: 107 115 151;
+  --surface-600:  77  84 128;
+  --surface-700:  46  51  83;
+  --surface-800:  26  29  46;
+  --surface-850:  20  22  37;
+  --surface-900:  14  16  32;
+  --surface-950:   9  11  21;
+  --accent-400:  129 140 248;
+  --accent-500:   99 102 241;
+  --accent-600:   79  70 229;
+  --success:      34 197  94;
+  --warning:     245 158  11;
+  --danger:      239  68  68;
+  --scrollbar-thumb:       #2a2f4a;
+  --scrollbar-thumb-hover: #3d4470;
+}
+
+/* Dark — pure charcoal + blue accent */
+[data-theme="dark"] {
+  --surface-50:  250 250 250;
+  --surface-100: 240 240 240;
+  --surface-200: 220 220 220;
+  --surface-300: 180 180 180;
+  --surface-400: 130 130 130;
+  --surface-500: 100 100 100;
+  --surface-600:  75  75  75;
+  --surface-700:  50  50  50;
+  --surface-800:  28  28  28;
+  --surface-850:  22  22  22;
+  --surface-900:  18  18  18;
+  --surface-950:  10  10  10;
+  --accent-400:   96 165 250;
+  --accent-500:   59 130 246;
+  --accent-600:   37  99 235;
+  --success:      34 197  94;
+  --warning:     245 158  11;
+  --danger:      239  68  68;
+  --scrollbar-thumb:       #303030;
+  --scrollbar-thumb-hover: #505050;
+}
+
+/* Light — white + indigo accent */
+[data-theme="light"] {
+  --surface-50:   15  23  42;
+  --surface-100:  30  41  59;
+  --surface-200:  51  65  85;
+  --surface-300:  71  85 105;
+  --surface-400: 100 116 139;
+  --surface-500: 148 163 184;
+  --surface-600: 203 213 225;
+  --surface-700: 226 232 240;
+  --surface-800: 241 245 249;
+  --surface-850: 248 250 252;
+  --surface-900: 255 255 255;
+  --surface-950: 255 255 255;
+  --accent-400:   99 102 241;
+  --accent-500:   79  70 229;
+  --accent-600:   67  56 202;
+  --success:      22 163  74;
+  --warning:     217 119   6;
+  --danger:      220  38  38;
+  --scrollbar-thumb:       #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+}
+
+/* Grass — dark forest green */
+[data-theme="grass"] {
+  --surface-50:  240 253 244;
+  --surface-100: 220 252 231;
+  --surface-200: 187 247 208;
+  --surface-300: 134 239 172;
+  --surface-400:  74 222 128;
+  --surface-500:  34 197  94;
+  --surface-600:  22 163  74;
+  --surface-700:  20  83  45;
+  --surface-800:  14  60  32;
+  --surface-850:  10  46  24;
+  --surface-900:   7  32  16;
+  --surface-950:   3  18   8;
+  --accent-400:   74 222 128;
+  --accent-500:   34 197  94;
+  --accent-600:   22 163  74;
+  --success:      74 222 128;
+  --warning:     245 158  11;
+  --danger:      239  68  68;
+  --scrollbar-thumb:       #14532d;
+  --scrollbar-thumb-hover: #166534;
+}
+
+/* Techno — dark cyan / cyberpunk */
+[data-theme="techno"] {
+  --surface-50:  224 247 250;
+  --surface-100: 178 235 242;
+  --surface-200: 128 222 234;
+  --surface-300:  77 208 225;
+  --surface-400:  38 198 218;
+  --surface-500:   0 188 212;
+  --surface-600:   0 151 167;
+  --surface-700:  14  80 100;
+  --surface-800:  10  50  65;
+  --surface-850:   7  36  48;
+  --surface-900:   4  22  32;
+  --surface-950:   2  10  18;
+  --accent-400:   34 211 238;
+  --accent-500:    6 182 212;
+  --accent-600:    8 145 178;
+  --success:      34 197  94;
+  --warning:     245 158  11;
+  --danger:      239  68  68;
+  --scrollbar-thumb:       #0e3f52;
+  --scrollbar-thumb-hover: #155e75;
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+
 @layer base {
   *,
   *::before,
@@ -17,8 +142,9 @@
     padding: 0;
     overflow: hidden;
     font-family: 'Inter', system-ui, sans-serif;
-    background-color: #0e1020;
-    color: #c8cfe8;
+    background-color: rgb(var(--surface-900));
+    color: rgb(var(--surface-300));
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   ::-webkit-scrollbar {
@@ -31,14 +157,16 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #2a2f4a;
+    background: var(--scrollbar-thumb);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #3d4470;
+    background: var(--scrollbar-thumb-hover);
   }
 }
+
+/* ─── Components ───────────────────────────────────────────────────────────── */
 
 @layer components {
   .btn {

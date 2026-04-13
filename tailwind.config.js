@@ -5,24 +5,27 @@ module.exports = {
     extend: {
       colors: {
         surface: {
-          50: '#f8f9fc',
-          100: '#f0f2f8',
-          200: '#e2e6f3',
-          300: '#c8cfe8',
-          400: '#a8b3d8',
-          800: '#1a1d2e',
-          850: '#141625',
-          900: '#0e1020',
-          950: '#090b15'
+          50:  'rgb(var(--surface-50)  / <alpha-value>)',
+          100: 'rgb(var(--surface-100) / <alpha-value>)',
+          200: 'rgb(var(--surface-200) / <alpha-value>)',
+          300: 'rgb(var(--surface-300) / <alpha-value>)',
+          400: 'rgb(var(--surface-400) / <alpha-value>)',
+          500: 'rgb(var(--surface-500) / <alpha-value>)',
+          600: 'rgb(var(--surface-600) / <alpha-value>)',
+          700: 'rgb(var(--surface-700) / <alpha-value>)',
+          800: 'rgb(var(--surface-800) / <alpha-value>)',
+          850: 'rgb(var(--surface-850) / <alpha-value>)',
+          900: 'rgb(var(--surface-900) / <alpha-value>)',
+          950: 'rgb(var(--surface-950) / <alpha-value>)'
         },
         accent: {
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5'
+          400: 'rgb(var(--accent-400) / <alpha-value>)',
+          500: 'rgb(var(--accent-500) / <alpha-value>)',
+          600: 'rgb(var(--accent-600) / <alpha-value>)'
         },
-        success: '#22c55e',
-        warning: '#f59e0b',
-        danger: '#ef4444'
+        success: 'rgb(var(--success) / <alpha-value>)',
+        warning: 'rgb(var(--warning) / <alpha-value>)',
+        danger:  'rgb(var(--danger)  / <alpha-value>)'
       },
       fontFamily: {
         mono: ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'monospace'],
