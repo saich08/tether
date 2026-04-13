@@ -1,7 +1,7 @@
-import React from 'react'
+import React from "react";
 
 interface WelcomeScreenProps {
-  onConnect: () => void
+  onConnect: () => void;
 }
 
 export function WelcomeScreen({ onConnect }: WelcomeScreenProps): JSX.Element {
@@ -21,7 +21,9 @@ export function WelcomeScreen({ onConnect }: WelcomeScreenProps): JSX.Element {
           </svg>
         </div>
         <div className="text-center">
-          <h1 className="text-2xl font-semibold text-surface-100 tracking-tight">Tether</h1>
+          <h1 className="text-2xl font-semibold text-surface-100 tracking-tight">
+            Tether
+          </h1>
           <p className="text-sm text-surface-400 mt-1">
             A modern SSH client with terminal & file explorer
           </p>
@@ -50,5 +52,5 @@ export function WelcomeScreen({ onConnect }: WelcomeScreenProps): JSX.Element {
         </div>
       </div>
     </div>
-  )
+  );
 }
