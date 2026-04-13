@@ -76,6 +76,7 @@ export function FileExplorer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<FileEntry | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -108,6 +109,8 @@ export function FileExplorer({
   );
 
   useEffect(() => {
+    setSelected(null);
+    setSelectedEntry(null);
     loadDirectory(currentPath);
   }, [currentPath, loadDirectory]);
 
@@ -144,10 +147,16 @@ export function FileExplorer({
     }
   };
 
+  const selectEntry = (entry: FileEntry): void => {
+    setSelected(entry.path);
+    setSelectedEntry(entry);
+  };
+
   const navigate = (entry: FileEntry): void => {
     if (entry.isDirectory) {
       onPathChange(entry.path);
       setSelected(null);
+      setSelectedEntry(null);
     } else {
       setEditingFile(entry);
     }
@@ -158,6 +167,7 @@ export function FileExplorer({
     const parent = currentPath.split("/").slice(0, -1).join("/") || "/";
     onPathChange(parent);
     setSelected(null);
+    setSelectedEntry(null);
   };
 
   const handleDownload = async (entry: FileEntry): Promise<void> => {
@@ -435,7 +445,7 @@ export function FileExplorer({
                         ? "bg-accent-600/15 border-l-2 border-accent-500"
                         : "hover:bg-surface-800/40 border-l-2 border-transparent"
                     }`}
-                    onClick={() => setSelected(entry.path)}
+                    onClick={() => selectEntry(entry)}
                     onDoubleClick={() => navigate(entry)}
                     onContextMenu={(e) => openContextMenu(e, entry)}
                   >
@@ -548,7 +558,7 @@ export function FileExplorer({
                         ? "bg-accent-600/15 border-l-2 border-accent-500"
                         : "hover:bg-surface-800/40 border-l-2 border-transparent"
                     }`}
-                    onClick={() => setSelected(entry.path)}
+                    onClick={() => selectEntry(entry)}
                     onDoubleClick={() => navigate(entry)}
                     onContextMenu={(e) => openContextMenu(e, entry)}
                   >
@@ -688,7 +698,7 @@ export function FileExplorer({
                           renaming={renaming}
                           renameValue={renameValue}
                           renameInputRef={renameInputRef}
-                          onSelect={setSelected}
+                          onSelect={selectEntry}
                           onNavigate={navigate}
                           onContextMenu={openContextMenu}
                           onRenameChange={setRenameValue}
@@ -722,7 +732,7 @@ export function FileExplorer({
                           renaming={renaming}
                           renameValue={renameValue}
                           renameInputRef={renameInputRef}
-                          onSelect={setSelected}
+                          onSelect={selectEntry}
                           onNavigate={navigate}
                           onContextMenu={openContextMenu}
                           onRenameChange={setRenameValue}
@@ -748,6 +758,17 @@ export function FileExplorer({
           </>
         )}
       </div>
+
+      {/* Properties pane */}
+      {selectedEntry && (
+        <PropertiesPane
+          entry={selectedEntry}
+          onClose={() => {
+            setSelected(null);
+            setSelectedEntry(null);
+          }}
+        />
+      )}
 
       {/* Status bar */}
       <div className="flex items-center justify-between px-3 py-1 bg-surface-900 border-t border-surface-800 flex-shrink-0">
@@ -832,6 +853,87 @@ export function FileExplorer({
   );
 }
 
+// ─── Properties pane ─────────────────────────────────────────────────────────
+
+function PropertiesPane({
+  entry,
+  onClose,
+}: {
+  entry: FileEntry;
+  onClose: () => void;
+}): JSX.Element {
+  const ext = !entry.isDirectory ? entry.name.split(".").pop() ?? "" : "";
+  const type = entry.isDirectory
+    ? "Folder"
+    : entry.isSymlink
+      ? "Symlink"
+      : ext
+        ? `${ext.toUpperCase()} File`
+        : "File";
+  const dir = entry.path.split("/").slice(0, -1).join("/") || "/";
+  const modDate = entry.modifiedAt ? new Date(entry.modifiedAt) : null;
+  const modFormatted = modDate
+    ? modDate.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "—";
+
+  const Row = ({ label, value }: { label: string; value: string }): JSX.Element => (
+    <div className="flex gap-2 py-0.5 min-w-0">
+      <span className="text-surface-500 text-xs w-[72px] flex-shrink-0 font-medium leading-relaxed">
+        {label}
+      </span>
+      <span className="text-surface-300 text-xs font-mono break-all leading-relaxed min-w-0">
+        {value}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="border-t-2 border-surface-700 bg-surface-950 flex-shrink-0 max-h-56 overflow-y-auto">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-surface-900/80 sticky top-0 border-b border-surface-800/60">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <FileIcon entry={entry} size={12} />
+          <span className="text-xs text-surface-300 font-medium truncate max-w-[160px]">
+            {entry.name}
+          </span>
+          <span className="text-xs text-surface-600 flex-shrink-0">— Properties</span>
+        </div>
+        <button
+          className="btn-ghost p-0.5 rounded text-surface-600 hover:text-surface-300 flex-shrink-0"
+          onClick={onClose}
+          title="Close"
+        >
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854z" />
+          </svg>
+        </button>
+      </div>
+      <div className="px-3 py-2">
+        <Row label="Name" value={entry.name} />
+        <Row label="Type" value={type} />
+        <Row label="Path" value={entry.path} />
+        <Row label="Location" value={dir} />
+        {!entry.isDirectory && (
+          <Row
+            label="Size"
+            value={`${formatSize(entry.size)}  (${entry.size.toLocaleString()} bytes)`}
+          />
+        )}
+        <Row label="Modified" value={modFormatted} />
+        <Row label="Permissions" value={entry.permissions || "—"} />
+        <Row label="Owner" value={entry.owner || "—"} />
+        <Row label="Group" value={entry.group || "—"} />
+        {entry.isSymlink && <Row label="Symlink" value="Yes" />}
+      </div>
+    </div>
+  );
+}
+
 // ─── Grid tile ───────────────────────────────────────────────────────────────
 
 interface GridTileProps {
@@ -840,7 +942,7 @@ interface GridTileProps {
   renaming: string | null;
   renameValue: string;
   renameInputRef: React.RefObject<HTMLInputElement>;
-  onSelect: (path: string) => void;
+  onSelect: (entry: FileEntry) => void;
   onNavigate: (entry: FileEntry) => void;
   onContextMenu: (e: React.MouseEvent, entry: FileEntry) => void;
   onRenameChange: (v: string) => void;
@@ -876,7 +978,7 @@ function GridTile({
           ? "bg-accent-600/20 ring-1 ring-accent-500/50"
           : "hover:bg-surface-800/50"
       }`}
-      onClick={() => onSelect(entry.path)}
+      onClick={() => onSelect(entry)}
       onDoubleClick={() => onNavigate(entry)}
       onContextMenu={(e) => onContextMenu(e, entry)}
       title={`${entry.name}${!entry.isDirectory ? ` · ${formatSize(entry.size)}` : ""}`}
