@@ -81,6 +81,10 @@ export const IPC = {
   SFTP_RENAME: 'sftp:rename',
   SFTP_STAT: 'sftp:stat',
 
+  // File editor
+  SFTP_READ_FILE: 'sftp:read-file',
+  SFTP_WRITE_FILE: 'sftp:write-file',
+
   // Shell utilities
   SHELL_OPEN_VSCODE: 'shell:open-vscode'
 } as const
@@ -126,4 +130,15 @@ export interface SFTPRenameRequest {
   connectionId: string
   oldPath: string
   newPath: string
+}
+
+export interface SFTPReadFileRequest {
+  connectionId: string
+  path: string
+}
+
+export interface SFTPWriteFileRequest {
+  connectionId: string
+  path: string
+  content: string
 }

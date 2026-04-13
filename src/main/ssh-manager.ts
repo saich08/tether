@@ -304,6 +304,23 @@ export class SSHManager extends EventEmitter {
     })
   }
 
+  async readFile(connectionId: string, path: string): Promise<string> {
+    const sftp = await this.getSFTP(connectionId)
+    return new Promise<string>((resolve, reject) => {
+      sftp.readFile(path, { encoding: 'utf8' }, (err, data) => {
+        if (err) return reject(err)
+        resolve(data as unknown as string)
+      })
+    })
+  }
+
+  async writeFile(connectionId: string, path: string, content: string): Promise<void> {
+    const sftp = await this.getSFTP(connectionId)
+    await new Promise<void>((resolve, reject) => {
+      sftp.writeFile(path, content, (err) => (err ? reject(err) : resolve()))
+    })
+  }
+
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   getSession(connectionId: string): ActiveSession | undefined {
