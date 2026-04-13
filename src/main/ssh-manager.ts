@@ -1,9 +1,11 @@
 import { Client, SFTPWrapper } from 'ssh2'
 import { EventEmitter } from 'events'
 import { randomUUID } from 'crypto'
+import type { Readable } from 'stream'
 import type {
   SSHCredentials,
   SSHConnection,
+  SSHProxyConfig,
   FileEntry,
   DirectoryListing,
   TerminalDimensions
@@ -38,51 +40,104 @@ export class SSHManager extends EventEmitter {
     this.sessions.set(id, { connection, client })
     this.emitStatus(connection)
 
-    await new Promise<void>((resolve, reject) => {
-      client.on('ready', () => {
-        connection.status = 'connected'
-        connection.connectedAt = Date.now()
-        this.emitStatus(connection)
-        resolve()
-      })
+    try {
+      const sock = credentials.proxy
+        ? await this.openProxyTunnel(credentials.proxy, credentials.host, credentials.port)
+        : undefined
 
-      client.on('error', (err) => {
-        connection.status = 'error'
-        this.emitStatus(connection)
-        this.sessions.delete(id)
-        reject(new Error(err.message))
-      })
+      await new Promise<void>((resolve, reject) => {
+        client.on('ready', () => {
+          connection.status = 'connected'
+          connection.connectedAt = Date.now()
+          this.emitStatus(connection)
+          resolve()
+        })
 
-      client.on('close', () => {
-        const session = this.sessions.get(id)
-        if (session) {
-          session.connection.status = 'disconnected'
-          this.emitStatus(session.connection)
+        client.on('error', (err) => {
+          connection.status = 'error'
+          this.emitStatus(connection)
           this.sessions.delete(id)
+          reject(new Error(err.message))
+        })
+
+        client.on('close', () => {
+          const session = this.sessions.get(id)
+          if (session) {
+            session.connection.status = 'disconnected'
+            this.emitStatus(session.connection)
+            this.sessions.delete(id)
+          }
+        })
+
+        const connectConfig: Parameters<Client['connect']>[0] = {
+          host: credentials.host,
+          port: credentials.port,
+          username: credentials.username,
+          readyTimeout: 15000,
+          keepaliveInterval: 30000,
+          sock: sock ?? undefined
         }
+
+        if (credentials.authMethod === 'password') {
+          connectConfig.password = credentials.password
+        } else {
+          connectConfig.privateKey = credentials.privateKey
+          if (credentials.passphrase) {
+            connectConfig.passphrase = credentials.passphrase
+          }
+        }
+
+        client.connect(connectConfig)
       })
-
-      const connectConfig: Parameters<Client['connect']>[0] = {
-        host: credentials.host,
-        port: credentials.port,
-        username: credentials.username,
-        readyTimeout: 15000,
-        keepaliveInterval: 30000
-      }
-
-      if (credentials.authMethod === 'password') {
-        connectConfig.password = credentials.password
-      } else {
-        connectConfig.privateKey = credentials.privateKey
-        if (credentials.passphrase) {
-          connectConfig.passphrase = credentials.passphrase
-        }
-      }
-
-      client.connect(connectConfig)
-    })
+    } catch (err) {
+      connection.status = 'error'
+      this.emitStatus(connection)
+      this.sessions.delete(id)
+      throw err
+    }
 
     return connection
+  }
+
+  private openProxyTunnel(
+    proxy: SSHProxyConfig,
+    targetHost: string,
+    targetPort: number
+  ): Promise<Readable> {
+    return new Promise((resolve, reject) => {
+      const proxyClient = new Client()
+
+      proxyClient.on('ready', () => {
+        proxyClient.forwardOut('127.0.0.1', 0, targetHost, targetPort, (err, stream) => {
+          if (err) {
+            proxyClient.end()
+            return reject(new Error(`Proxy tunnel failed: ${err.message}`))
+          }
+          stream.on('close', () => proxyClient.end())
+          resolve(stream as unknown as Readable)
+        })
+      })
+
+      proxyClient.on('error', (err) => {
+        reject(new Error(`Proxy connection failed: ${err.message}`))
+      })
+
+      const proxyCfg: Parameters<Client['connect']>[0] = {
+        host: proxy.host,
+        port: proxy.port,
+        username: proxy.username,
+        readyTimeout: 15000
+      }
+
+      if (proxy.authMethod === 'password') {
+        proxyCfg.password = proxy.password
+      } else {
+        proxyCfg.privateKey = proxy.privateKey
+        if (proxy.passphrase) proxyCfg.passphrase = proxy.passphrase
+      }
+
+      proxyClient.connect(proxyCfg)
+    })
   }
 
   // ─── Disconnect ───────────────────────────────────────────────────────────

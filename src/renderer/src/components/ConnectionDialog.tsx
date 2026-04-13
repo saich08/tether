@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
-import type { SSHCredentials, SSHConnection } from '../../../shared/types'
+import type { SSHCredentials, SSHConnection, SSHProxyConfig } from '../../../shared/types'
 
 interface ConnectionDialogProps {
   onConnected: (connection: SSHConnection) => void
@@ -36,16 +36,27 @@ const DEFAULT_FORM: SSHCredentials = {
   label: ''
 }
 
+const DEFAULT_PROXY: SSHProxyConfig = {
+  host: '',
+  port: 22,
+  username: '',
+  authMethod: 'password',
+  password: '',
+  privateKey: '',
+  passphrase: ''
+}
+
 export function ConnectionDialog({ onConnected, onClose }: ConnectionDialogProps): JSX.Element {
   const [form, setForm] = useState<SSHCredentials>(DEFAULT_FORM)
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [profiles, setProfiles] = useState<SavedProfile[]>(loadProfiles)
   const [saveProfile, setSaveProfile] = useState(false)
+  const [useProxy, setUseProxy] = useState(false)
+  const [proxy, setProxy] = useState<SSHProxyConfig>(DEFAULT_PROXY)
   const hostInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    // Close on Escape
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') onClose()
     }
@@ -62,8 +73,20 @@ export function ConnectionDialog({ onConnected, onClose }: ConnectionDialogProps
     setError(null)
   }, [])
 
+  const setProxyField = useCallback(<K extends keyof SSHProxyConfig>(key: K, value: SSHProxyConfig[K]) => {
+    setProxy((p) => ({ ...p, [key]: value }))
+    setError(null)
+  }, [])
+
   const loadProfile = (profile: SavedProfile): void => {
     setForm(profile.credentials)
+    if (profile.credentials.proxy) {
+      setUseProxy(true)
+      setProxy(profile.credentials.proxy)
+    } else {
+      setUseProxy(false)
+      setProxy(DEFAULT_PROXY)
+    }
     setError(null)
   }
 
@@ -84,28 +107,43 @@ export function ConnectionDialog({ onConnected, onClose }: ConnectionDialogProps
       setError('Private key is required')
       return
     }
+    if (useProxy) {
+      if (!proxy.host.trim()) { setError('Proxy host is required'); return }
+      if (!proxy.username.trim()) { setError('Proxy username is required'); return }
+      if (proxy.authMethod === 'password' && !proxy.password) {
+        setError('Proxy password is required')
+        return
+      }
+      if (proxy.authMethod === 'privateKey' && !proxy.privateKey?.trim()) {
+        setError('Proxy private key is required')
+        return
+      }
+    }
 
     setConnecting(true)
     setError(null)
 
-    // Optionally persist profile
-    if (saveProfile && form.label?.trim()) {
+    const finalForm: SSHCredentials = useProxy
+      ? { ...form, proxy }
+      : { ...form, proxy: undefined }
+
+    if (saveProfile && finalForm.label?.trim()) {
       const updated = [
-        ...profiles.filter((p) => p.label !== form.label),
-        { label: form.label, credentials: { ...form } }
+        ...profiles.filter((p) => p.label !== finalForm.label),
+        { label: finalForm.label, credentials: { ...finalForm } }
       ]
       setProfiles(updated)
       saveProfiles(updated)
     }
 
-    const result = await window.electron.ssh.connect(form)
+    const result = await window.electron.ssh.connect(finalForm)
 
     setConnecting(false)
 
     if (result.ok && result.data) {
       onConnected({
         id: result.data,
-        credentials: form,
+        credentials: finalForm,
         status: 'connected',
         connectedAt: Date.now()
       })
@@ -124,7 +162,7 @@ export function ConnectionDialog({ onConnected, onClose }: ConnectionDialogProps
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="bg-surface-900 border border-surface-700 rounded-xl shadow-2xl shadow-black/60 w-full max-w-md mx-4 overflow-hidden"
+        className="bg-surface-900 border border-surface-700 rounded-xl shadow-2xl shadow-black/60 w-full max-w-2xl mx-4 overflow-hidden"
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
@@ -151,10 +189,10 @@ export function ConnectionDialog({ onConnected, onClose }: ConnectionDialogProps
           </button>
         </div>
 
-        <div className="flex gap-0 h-[420px]">
+        <div className="flex gap-0 h-[520px]">
           {/* Saved profiles sidebar */}
           {profiles.length > 0 && (
-            <div className="w-36 border-r border-surface-800 overflow-y-auto flex-shrink-0">
+            <div className="w-40 border-r border-surface-800 overflow-y-auto flex-shrink-0">
               <div className="px-3 py-2 text-xs text-surface-500 font-medium uppercase tracking-wide">
                 Saved
               </div>
@@ -180,113 +218,230 @@ export function ConnectionDialog({ onConnected, onClose }: ConnectionDialogProps
           )}
 
           {/* Form */}
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
-            {/* Host + Port */}
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="block text-xs text-surface-400 mb-1 font-medium">Host</label>
-                <input
-                  ref={hostInputRef}
-                  className="input"
-                  placeholder="192.168.1.1"
-                  value={form.host}
-                  onChange={(e) => set('host', e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </div>
-              <div className="w-20">
-                <label className="block text-xs text-surface-400 mb-1 font-medium">Port</label>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  max={65535}
-                  value={form.port}
-                  onChange={(e) => set('port', parseInt(e.target.value, 10) || 22)}
-                />
-              </div>
-            </div>
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            {/* Two-column layout for target + proxy */}
+            <div className={`grid gap-6 ${useProxy ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {/* Target host column */}
+              <div className="space-y-3.5">
+                {useProxy && (
+                  <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide">Target Host</p>
+                )}
 
-            {/* Username */}
-            <div>
-              <label className="block text-xs text-surface-400 mb-1 font-medium">Username</label>
-              <input
-                className="input"
-                placeholder="root"
-                value={form.username}
-                onChange={(e) => set('username', e.target.value)}
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
+                {/* Host + Port */}
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-xs text-surface-400 mb-1 font-medium">Host</label>
+                    <input
+                      ref={hostInputRef}
+                      className="input"
+                      placeholder="192.168.1.1"
+                      value={form.host}
+                      onChange={(e) => set('host', e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div className="w-20">
+                    <label className="block text-xs text-surface-400 mb-1 font-medium">Port</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min={1}
+                      max={65535}
+                      value={form.port}
+                      onChange={(e) => set('port', parseInt(e.target.value, 10) || 22)}
+                    />
+                  </div>
+                </div>
 
-            {/* Auth method tabs */}
-            <div>
-              <label className="block text-xs text-surface-400 mb-2 font-medium">Authentication</label>
-              <div className="flex gap-1 p-1 bg-surface-950 rounded-lg mb-3">
-                <button
-                  className={form.authMethod === 'password' ? 'tab-active flex-1' : 'tab-inactive flex-1'}
-                  onClick={() => set('authMethod', 'password')}
-                >
-                  Password
-                </button>
-                <button
-                  className={form.authMethod === 'privateKey' ? 'tab-active flex-1' : 'tab-inactive flex-1'}
-                  onClick={() => set('authMethod', 'privateKey')}
-                >
-                  Private Key
-                </button>
-              </div>
-
-              {form.authMethod === 'password' ? (
-                <input
-                  className="input"
-                  type="password"
-                  placeholder="Password"
-                  value={form.password ?? ''}
-                  onChange={(e) => set('password', e.target.value)}
-                />
-              ) : (
-                <div className="space-y-2">
-                  <textarea
-                    className="input font-mono text-xs resize-none h-24"
-                    placeholder="Paste your PEM private key here..."
-                    value={form.privateKey ?? ''}
-                    onChange={(e) => set('privateKey', e.target.value)}
-                    spellCheck={false}
-                  />
+                {/* Username */}
+                <div>
+                  <label className="block text-xs text-surface-400 mb-1 font-medium">Username</label>
                   <input
                     className="input"
-                    type="password"
-                    placeholder="Passphrase (optional)"
-                    value={form.passphrase ?? ''}
-                    onChange={(e) => set('passphrase', e.target.value)}
+                    placeholder="root"
+                    value={form.username}
+                    onChange={(e) => set('username', e.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
                   />
+                </div>
+
+                {/* Auth method */}
+                <div>
+                  <label className="block text-xs text-surface-400 mb-2 font-medium">Authentication</label>
+                  <div className="flex gap-1 p-1 bg-surface-950 rounded-lg mb-3">
+                    <button
+                      className={form.authMethod === 'password' ? 'tab-active flex-1' : 'tab-inactive flex-1'}
+                      onClick={() => set('authMethod', 'password')}
+                    >
+                      Password
+                    </button>
+                    <button
+                      className={form.authMethod === 'privateKey' ? 'tab-active flex-1' : 'tab-inactive flex-1'}
+                      onClick={() => set('authMethod', 'privateKey')}
+                    >
+                      Private Key
+                    </button>
+                  </div>
+
+                  {form.authMethod === 'password' ? (
+                    <input
+                      className="input"
+                      type="password"
+                      placeholder="Password"
+                      value={form.password ?? ''}
+                      onChange={(e) => set('password', e.target.value)}
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      <textarea
+                        className="input font-mono text-xs resize-none h-24"
+                        placeholder="Paste your PEM private key here..."
+                        value={form.privateKey ?? ''}
+                        onChange={(e) => set('privateKey', e.target.value)}
+                        spellCheck={false}
+                      />
+                      <input
+                        className="input"
+                        type="password"
+                        placeholder="Passphrase (optional)"
+                        value={form.passphrase ?? ''}
+                        onChange={(e) => set('passphrase', e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Proxy host column */}
+              {useProxy && (
+                <div className="space-y-3.5">
+                  <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide">Jump / Proxy Host</p>
+
+                  {/* Proxy Host + Port */}
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-xs text-surface-400 mb-1 font-medium">Host</label>
+                      <input
+                        className="input"
+                        placeholder="jump.example.com"
+                        value={proxy.host}
+                        onChange={(e) => setProxyField('host', e.target.value)}
+                        autoComplete="off"
+                        spellCheck={false}
+                      />
+                    </div>
+                    <div className="w-20">
+                      <label className="block text-xs text-surface-400 mb-1 font-medium">Port</label>
+                      <input
+                        className="input"
+                        type="number"
+                        min={1}
+                        max={65535}
+                        value={proxy.port}
+                        onChange={(e) => setProxyField('port', parseInt(e.target.value, 10) || 22)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Proxy Username */}
+                  <div>
+                    <label className="block text-xs text-surface-400 mb-1 font-medium">Username</label>
+                    <input
+                      className="input"
+                      placeholder="root"
+                      value={proxy.username}
+                      onChange={(e) => setProxyField('username', e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+
+                  {/* Proxy Auth */}
+                  <div>
+                    <label className="block text-xs text-surface-400 mb-2 font-medium">Authentication</label>
+                    <div className="flex gap-1 p-1 bg-surface-950 rounded-lg mb-3">
+                      <button
+                        className={proxy.authMethod === 'password' ? 'tab-active flex-1' : 'tab-inactive flex-1'}
+                        onClick={() => setProxyField('authMethod', 'password')}
+                      >
+                        Password
+                      </button>
+                      <button
+                        className={proxy.authMethod === 'privateKey' ? 'tab-active flex-1' : 'tab-inactive flex-1'}
+                        onClick={() => setProxyField('authMethod', 'privateKey')}
+                      >
+                        Private Key
+                      </button>
+                    </div>
+
+                    {proxy.authMethod === 'password' ? (
+                      <input
+                        className="input"
+                        type="password"
+                        placeholder="Password"
+                        value={proxy.password ?? ''}
+                        onChange={(e) => setProxyField('password', e.target.value)}
+                      />
+                    ) : (
+                      <div className="space-y-2">
+                        <textarea
+                          className="input font-mono text-xs resize-none h-24"
+                          placeholder="Paste your PEM private key here..."
+                          value={proxy.privateKey ?? ''}
+                          onChange={(e) => setProxyField('privateKey', e.target.value)}
+                          spellCheck={false}
+                        />
+                        <input
+                          className="input"
+                          type="password"
+                          placeholder="Passphrase (optional)"
+                          value={proxy.passphrase ?? ''}
+                          onChange={(e) => setProxyField('passphrase', e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Save profile */}
-            <div className="flex items-center gap-2">
-              <input
-                id="save-profile"
-                type="checkbox"
-                className="w-3.5 h-3.5 accent-accent-500 rounded"
-                checked={saveProfile}
-                onChange={(e) => setSaveProfile(e.target.checked)}
-              />
-              <label htmlFor="save-profile" className="text-xs text-surface-400 cursor-pointer">
-                Save as profile
-              </label>
-              {saveProfile && (
+            {/* Proxy toggle + Save profile row */}
+            <div className="flex items-center gap-4 pt-1">
+              <div className="flex items-center gap-2">
                 <input
-                  className="input ml-2 h-6 py-0 text-xs flex-1"
-                  placeholder="Profile name"
-                  value={form.label ?? ''}
-                  onChange={(e) => set('label', e.target.value)}
+                  id="use-proxy"
+                  type="checkbox"
+                  className="w-3.5 h-3.5 accent-accent-500 rounded"
+                  checked={useProxy}
+                  onChange={(e) => setUseProxy(e.target.checked)}
                 />
-              )}
+                <label htmlFor="use-proxy" className="text-xs text-surface-400 cursor-pointer">
+                  SSH via Proxy / Jump Host
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id="save-profile"
+                  type="checkbox"
+                  className="w-3.5 h-3.5 accent-accent-500 rounded"
+                  checked={saveProfile}
+                  onChange={(e) => setSaveProfile(e.target.checked)}
+                />
+                <label htmlFor="save-profile" className="text-xs text-surface-400 cursor-pointer">
+                  Save as profile
+                </label>
+                {saveProfile && (
+                  <input
+                    className="input ml-1 h-6 py-0 text-xs w-32"
+                    placeholder="Profile name"
+                    value={form.label ?? ''}
+                    onChange={(e) => set('label', e.target.value)}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Error */}
