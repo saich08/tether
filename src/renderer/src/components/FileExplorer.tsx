@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { FileEntry } from "../../../shared/types";
+import { FileEditorDialog } from "./FileEditorDialog";
 import folderIcon from "../assets/folder-default.svg";
 import fileIcon from "../assets/file-default.svg";
 
@@ -78,6 +79,7 @@ export function FileExplorer({
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [editingFile, setEditingFile] = useState<FileEntry | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -146,6 +148,8 @@ export function FileExplorer({
     if (entry.isDirectory) {
       onPathChange(entry.path);
       setSelected(null);
+    } else {
+      setEditingFile(entry);
     }
   };
 
@@ -774,6 +778,14 @@ export function FileExplorer({
                 y={cm.y}
                 entry={cm.entry}
                 onClose={closeContextMenu}
+                onEdit={
+                  !cm.entry.isDirectory
+                    ? () => {
+                        closeContextMenu();
+                        setEditingFile(cm.entry);
+                      }
+                    : undefined
+                }
                 onRename={() => {
                   closeContextMenu();
                   startRename(cm.entry);
@@ -807,6 +819,15 @@ export function FileExplorer({
             document.body,
           );
         })()}
+
+      {/* File editor */}
+      {editingFile && (
+        <FileEditorDialog
+          connectionId={connectionId}
+          file={editingFile}
+          onClose={() => setEditingFile(null)}
+        />
+      )}
     </div>
   );
 }
@@ -953,6 +974,7 @@ interface ContextMenuPopupProps {
   y: number;
   entry: FileEntry;
   onClose: () => void;
+  onEdit?: () => void;
   onRename: () => void;
   onDelete: () => void;
   onDownload: () => void;
@@ -964,6 +986,7 @@ function ContextMenuPopup({
   x,
   y,
   entry,
+  onEdit,
   onRename,
   onDelete,
   onDownload,
@@ -1052,6 +1075,24 @@ function ContextMenuPopup({
 
       {entry.isDirectory && (onJumpToFolder || onOpenInVSCode) && (
         <div className="my-0.5 border-t border-surface-800" />
+      )}
+
+      {onEdit && (
+        <Item
+          label="Edit"
+          onClick={onEdit}
+          icon={
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className="flex-shrink-0"
+            >
+              <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
+            </svg>
+          }
+        />
       )}
 
       <Item
