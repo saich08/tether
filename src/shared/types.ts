@@ -1,5 +1,15 @@
 // ─── SSH Connection ─────────────────────────────────────────────────────────
 
+export interface SSHProxyConfig {
+  host: string
+  port: number
+  username: string
+  authMethod: 'password' | 'privateKey'
+  password?: string
+  privateKey?: string
+  passphrase?: string
+}
+
 export interface SSHCredentials {
   host: string
   port: number
@@ -10,6 +20,8 @@ export interface SSHCredentials {
   passphrase?: string
   /** Optional display label */
   label?: string
+  /** Optional jump/proxy host */
+  proxy?: SSHProxyConfig
 }
 
 export interface SSHConnection {
