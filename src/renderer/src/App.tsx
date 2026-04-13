@@ -2,11 +2,13 @@ import { useState, useCallback, useRef, useEffect, createRef } from 'react'
 import { TitleBar } from './components/TitleBar'
 import { SessionTabs } from './components/SessionTabs'
 import { ConnectionDialog } from './components/ConnectionDialog'
+import { SettingsDialog } from './components/SettingsDialog'
 import { SplitPane } from './components/SplitPane'
 import { Terminal } from './components/Terminal'
 import type { TerminalHandle } from './components/Terminal'
 import { FileExplorer } from './components/FileExplorer'
 import { WelcomeScreen } from './components/WelcomeScreen'
+import { ThemeProvider } from './context/ThemeContext'
 import type { SSHConnection } from '../../shared/types'
 
 interface SessionData {
@@ -16,6 +18,7 @@ interface SessionData {
 
 export default function App(): JSX.Element {
   const [showConnectionDialog, setShowConnectionDialog] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [sessions, setSessions] = useState<{ id: string; data: SessionData }[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   // Stable map of terminal refs keyed by connection id
@@ -92,11 +95,13 @@ export default function App(): JSX.Element {
   }, [])
 
   return (
+    <ThemeProvider>
     <div className="flex flex-col h-full bg-surface-950">
       <TitleBar
         connection={activeSession?.data.connection ?? null}
         onNewConnection={() => setShowConnectionDialog(true)}
         onDisconnect={() => activeSessionId && handleCloseTab(activeSessionId)}
+        onSettings={() => setShowSettings(true)}
       />
 
       {sessions.length > 0 && (
@@ -148,6 +153,11 @@ export default function App(): JSX.Element {
           onClose={() => setShowConnectionDialog(false)}
         />
       )}
+
+      {showSettings && (
+        <SettingsDialog onClose={() => setShowSettings(false)} />
+      )}
     </div>
+    </ThemeProvider>
   )
 }
