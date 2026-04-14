@@ -329,6 +329,34 @@ export class SSHManager extends EventEmitter {
     });
   }
 
+  async copyItem(
+    connectionId: string,
+    sourcePath: string,
+    destPath: string,
+  ): Promise<void> {
+    const session = this.sessions.get(connectionId);
+    if (!session) throw new Error(`No session for ${connectionId}`);
+
+    await new Promise<void>((resolve, reject) => {
+      const esc = (p: string): string => `'${p.replace(/'/g, "'\\''")}'`;
+      session.client.exec(
+        `cp -r ${esc(sourcePath)} ${esc(destPath)}`,
+        (err, stream) => {
+          if (err) return reject(err);
+          let stderr = "";
+          stream.stderr.on("data", (data: Buffer) => {
+            stderr += data.toString();
+          });
+          stream.on("close", (code: number) => {
+            if (code === 0) resolve();
+            else
+              reject(new Error(stderr.trim() || `cp exited with code ${code}`));
+          });
+        },
+      );
+    });
+  }
+
   async readFile(connectionId: string, path: string): Promise<string> {
     const sftp = await this.getSFTP(connectionId);
     return new Promise<string>((resolve, reject) => {

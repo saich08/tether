@@ -11,6 +11,7 @@ import {
   SFTPDeleteRequest,
   SFTPMkdirRequest,
   SFTPRenameRequest,
+  SFTPCopyRequest,
   SFTPReadFileRequest,
   SFTPWriteFileRequest,
   TerminalDimensions,
@@ -204,6 +205,18 @@ export function registerIpcHandlers(
     async (_event, req: SFTPWriteFileRequest): Promise<IPCResult> => {
       try {
         await manager.writeFile(req.connectionId, req.path, req.content);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: (err as Error).message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.SFTP_COPY,
+    async (_event, req: SFTPCopyRequest): Promise<IPCResult> => {
+      try {
+        await manager.copyItem(req.connectionId, req.sourcePath, req.destPath);
         return { ok: true };
       } catch (err) {
         return { ok: false, error: (err as Error).message };
