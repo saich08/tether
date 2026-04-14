@@ -247,6 +247,7 @@ export function registerIpcHandlers(
         {
           detached: true,
           stdio: "ignore",
+          shell: true,
         },
       );
       child.unref();
