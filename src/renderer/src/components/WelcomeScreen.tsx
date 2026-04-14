@@ -13,11 +13,16 @@ export function WelcomeScreen({ onConnect }: WelcomeScreenProps): JSX.Element {
           <svg
             width="32"
             height="32"
-            viewBox="0 0 16 16"
+            viewBox="0 0 24 24"
             className="text-accent-400"
-            fill="currentColor"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h11A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11zm2.354 3.146a.5.5 0 0 0-.708.708L4.293 8l-1.647 1.646a.5.5 0 0 0 .708.708l2-2a.5.5 0 0 0 0-.708l-2-2zm3.146 4.354a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3z" />
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
           </svg>
         </div>
         <div className="text-center">

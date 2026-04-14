@@ -15,6 +15,7 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     show: false,
     frame: false,
+    icon: join(__dirname, "../../resources/tether.png"),
     titleBarStyle: "hidden",
     titleBarOverlay: {
       color: "#0e1020",
