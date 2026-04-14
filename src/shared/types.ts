@@ -64,6 +64,36 @@ export interface TerminalDimensions {
   rows: number;
 }
 
+// ─── SSH Config ───────────────────────────────────────────────────────────────
+
+export interface SSHConfigEntry {
+  /** Host alias used in the config block (e.g. "myserver") */
+  host: string;
+  /** HostName — actual hostname or IP */
+  hostname: string;
+  /** Port, default 22 */
+  port: number;
+  /** User */
+  user: string;
+  /** IdentityFile path as written in the config (may contain ~) */
+  identityFile?: string;
+}
+
+export interface SSHConfigProfile extends SSHConfigEntry {
+  /** Content of identityFile if the file exists and is readable */
+  privateKeyContent?: string;
+}
+
+export interface SSHConfigWriteRequest {
+  entry: SSHConfigEntry;
+  /** Raw PEM private key content; if provided it is saved to ~/.ssh/tether_<alias> */
+  privateKeyContent?: string;
+}
+
+export interface SSHConfigDeleteRequest {
+  host: string;
+}
+
 // ─── IPC Channels ────────────────────────────────────────────────────────────
 
 export const IPC = {
@@ -93,6 +123,13 @@ export const IPC = {
 
   // Shell utilities
   SHELL_OPEN_VSCODE: "shell:open-vscode",
+
+  // SSH config file management
+  SSH_CONFIG_GET_PATH: "ssh-config:get-path",
+  SSH_CONFIG_SET_PATH: "ssh-config:set-path",
+  SSH_CONFIG_READ: "ssh-config:read",
+  SSH_CONFIG_WRITE: "ssh-config:write",
+  SSH_CONFIG_DELETE: "ssh-config:delete",
 } as const;
 
 export type IPCChannel = (typeof IPC)[keyof typeof IPC];

@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow, dialog } from "electron";
 import { spawn } from "child_process";
 import { SSHManager } from "./ssh-manager";
+import * as sshConfig from "./ssh-config-manager";
 import {
   IPC,
   IPCResult,
@@ -15,6 +16,9 @@ import {
   SFTPReadFileRequest,
   SFTPWriteFileRequest,
   TerminalDimensions,
+  SSHConfigWriteRequest,
+  SSHConfigDeleteRequest,
+  SSHConfigProfile,
 } from "../shared/types";
 
 export function registerIpcHandlers(
@@ -247,6 +251,68 @@ export function registerIpcHandlers(
       );
       child.unref();
       return { ok: true };
+    },
+  );
+
+  // ─── SSH Config file ──────────────────────────────────────────────────────
+
+  ipcMain.handle(IPC.SSH_CONFIG_GET_PATH, (): IPCResult<string> => {
+    try {
+      return { ok: true, data: sshConfig.getConfigPath() };
+    } catch (err) {
+      return { ok: false, error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle(
+    IPC.SSH_CONFIG_SET_PATH,
+    (_event, configPath: string): IPCResult => {
+      try {
+        sshConfig.setConfigPath(configPath);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: (err as Error).message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.SSH_CONFIG_READ,
+    (_event, configPath: string): IPCResult<SSHConfigProfile[]> => {
+      try {
+        const profiles = sshConfig.readConfig(configPath);
+        return { ok: true, data: profiles };
+      } catch (err) {
+        return { ok: false, error: (err as Error).message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.SSH_CONFIG_WRITE,
+    (_event, req: SSHConfigWriteRequest): IPCResult => {
+      try {
+        sshConfig.writeEntry(
+          sshConfig.getConfigPath(),
+          req.entry,
+          req.privateKeyContent,
+        );
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: (err as Error).message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.SSH_CONFIG_DELETE,
+    (_event, req: SSHConfigDeleteRequest): IPCResult => {
+      try {
+        sshConfig.deleteEntry(sshConfig.getConfigPath(), req.host);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: (err as Error).message };
+      }
     },
   );
 

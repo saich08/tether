@@ -3,6 +3,7 @@ import type {
   SSHCredentials,
   SSHConnection,
   SSHProxyConfig,
+  SSHConfigProfile,
 } from "../../../shared/types";
 
 interface ConnectionDialogProps {
@@ -58,6 +59,7 @@ export function ConnectionDialog({
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<SavedProfile[]>(loadProfiles);
+  const [configProfiles, setConfigProfiles] = useState<SSHConfigProfile[]>([]);
   const [saveProfile, setSaveProfile] = useState(false);
   const [useProxy, setUseProxy] = useState(false);
   const [proxy, setProxy] = useState<SSHProxyConfig>(DEFAULT_PROXY);
@@ -73,6 +75,19 @@ export function ConnectionDialog({
 
   useEffect(() => {
     hostInputRef.current?.focus();
+  }, []);
+
+  // Load SSH config profiles on open
+  useEffect(() => {
+    (async () => {
+      const pathResult = await window.electron.sshConfig.getPath();
+      const p =
+        pathResult.ok && pathResult.data ? pathResult.data : "~/.ssh/config";
+      const result = await window.electron.sshConfig.read(p);
+      if (result.ok && result.data) {
+        setConfigProfiles(result.data);
+      }
+    })();
   }, []);
 
   const set = useCallback(
@@ -100,6 +115,21 @@ export function ConnectionDialog({
       setUseProxy(false);
       setProxy(DEFAULT_PROXY);
     }
+    setError(null);
+  };
+
+  const loadConfigProfile = (profile: SSHConfigProfile): void => {
+    setForm({
+      ...DEFAULT_FORM,
+      host: profile.hostname,
+      port: profile.port,
+      username: profile.user,
+      label: profile.host,
+      authMethod: profile.privateKeyContent ? "privateKey" : "password",
+      privateKey: profile.privateKeyContent ?? "",
+    });
+    setUseProxy(false);
+    setProxy(DEFAULT_PROXY);
     setError(null);
   };
 
@@ -228,39 +258,75 @@ export function ConnectionDialog({
 
         <div className="flex gap-0 h-[520px]">
           {/* Saved profiles sidebar */}
-          {profiles.length > 0 && (
-            <div className="w-40 border-r border-surface-800 overflow-y-auto flex-shrink-0">
-              <div className="px-3 py-2 text-xs text-surface-500 font-medium uppercase tracking-wide">
-                Saved
-              </div>
-              {profiles.map((p, i) => (
-                <div
-                  key={i}
-                  className="group flex items-center justify-between px-3 py-2 hover:bg-surface-800/60 cursor-pointer transition-colors"
-                  onClick={() => loadProfile(p)}
-                >
-                  <span className="text-xs text-surface-300 truncate font-mono">
-                    {p.label || p.credentials.host}
-                  </span>
-                  <button
-                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-danger transition-all text-surface-600"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteProfile(i);
-                    }}
-                    title="Delete profile"
-                  >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 16 16"
-                      fill="currentColor"
+          {(profiles.length > 0 || configProfiles.length > 0) && (
+            <div className="w-44 border-r border-surface-800 overflow-y-auto flex-shrink-0">
+              {/* SSH config profiles */}
+              {configProfiles.length > 0 && (
+                <>
+                  <div className="px-3 py-2 text-xs text-surface-500 font-medium uppercase tracking-wide">
+                    SSH Config
+                  </div>
+                  {configProfiles.map((p) => (
+                    <div
+                      key={`cfg-${p.host}`}
+                      className="group flex items-center justify-between px-3 py-2 hover:bg-surface-800/60 cursor-pointer transition-colors"
+                      onClick={() => loadConfigProfile(p)}
                     >
-                      <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <svg
+                          width="9"
+                          height="9"
+                          viewBox="0 0 16 16"
+                          fill="currentColor"
+                          className="text-accent-400 flex-shrink-0"
+                        >
+                          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm5.904-2.803a.5.5 0 1 0-.707.707L6.586 7.293l-1.39 1.39a.5.5 0 0 0 .707.707l1.39-1.39 1.39 1.39a.5.5 0 0 0 .707-.707L8 7.293l1.39-1.39a.5.5 0 0 0-.707-.707L7.293 6.586l-1.39-1.389z" />
+                        </svg>
+                        <span className="text-xs text-surface-300 truncate font-mono">
+                          {p.host}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Local saved profiles */}
+              {profiles.length > 0 && (
+                <>
+                  <div className="px-3 py-2 text-xs text-surface-500 font-medium uppercase tracking-wide">
+                    Saved
+                  </div>
+                  {profiles.map((p, i) => (
+                    <div
+                      key={i}
+                      className="group flex items-center justify-between px-3 py-2 hover:bg-surface-800/60 cursor-pointer transition-colors"
+                      onClick={() => loadProfile(p)}
+                    >
+                      <span className="text-xs text-surface-300 truncate font-mono">
+                        {p.label || p.credentials.host}
+                      </span>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-danger transition-all text-surface-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteProfile(i);
+                        }}
+                        title="Delete profile"
+                      >
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 16 16"
+                          fill="currentColor"
+                        >
+                          <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
 
