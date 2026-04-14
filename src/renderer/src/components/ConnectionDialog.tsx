@@ -3,30 +3,12 @@ import type {
   SSHCredentials,
   SSHConnection,
   SSHProxyConfig,
+  SSHConfigProfile,
 } from "../../../shared/types";
 
 interface ConnectionDialogProps {
   onConnected: (connection: SSHConnection) => void;
   onClose: () => void;
-}
-
-interface SavedProfile {
-  label: string;
-  credentials: SSHCredentials;
-}
-
-const STORAGE_KEY = "tether-profiles";
-
-function loadProfiles(): SavedProfile[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveProfiles(profiles: SavedProfile[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
 }
 
 const DEFAULT_FORM: SSHCredentials = {
@@ -37,7 +19,6 @@ const DEFAULT_FORM: SSHCredentials = {
   password: "",
   privateKey: "",
   passphrase: "",
-  label: "",
 };
 
 const DEFAULT_PROXY: SSHProxyConfig = {
@@ -57,8 +38,7 @@ export function ConnectionDialog({
   const [form, setForm] = useState<SSHCredentials>(DEFAULT_FORM);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<SavedProfile[]>(loadProfiles);
-  const [saveProfile, setSaveProfile] = useState(false);
+  const [configProfiles, setConfigProfiles] = useState<SSHConfigProfile[]>([]);
   const [useProxy, setUseProxy] = useState(false);
   const [proxy, setProxy] = useState<SSHProxyConfig>(DEFAULT_PROXY);
   const hostInputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +53,19 @@ export function ConnectionDialog({
 
   useEffect(() => {
     hostInputRef.current?.focus();
+  }, []);
+
+  // Load SSH config profiles on open
+  useEffect(() => {
+    (async () => {
+      const pathResult = await window.electron.sshConfig.getPath();
+      const p =
+        pathResult.ok && pathResult.data ? pathResult.data : "~/.ssh/config";
+      const result = await window.electron.sshConfig.read(p);
+      if (result.ok && result.data) {
+        setConfigProfiles(result.data);
+      }
+    })();
   }, []);
 
   const set = useCallback(
@@ -91,22 +84,18 @@ export function ConnectionDialog({
     [],
   );
 
-  const loadProfile = (profile: SavedProfile): void => {
-    setForm(profile.credentials);
-    if (profile.credentials.proxy) {
-      setUseProxy(true);
-      setProxy(profile.credentials.proxy);
-    } else {
-      setUseProxy(false);
-      setProxy(DEFAULT_PROXY);
-    }
+  const loadConfigProfile = (profile: SSHConfigProfile): void => {
+    setForm({
+      ...DEFAULT_FORM,
+      host: profile.hostname,
+      port: profile.port,
+      username: profile.user,
+      authMethod: profile.privateKeyContent ? "privateKey" : "password",
+      privateKey: profile.privateKeyContent ?? "",
+    });
+    setUseProxy(false);
+    setProxy(DEFAULT_PROXY);
     setError(null);
-  };
-
-  const deleteProfile = (idx: number): void => {
-    const updated = profiles.filter((_, i) => i !== idx);
-    setProfiles(updated);
-    saveProfiles(updated);
   };
 
   const handleConnect = async (): Promise<void> => {
@@ -152,20 +141,23 @@ export function ConnectionDialog({
       ? { ...form, proxy }
       : { ...form, proxy: undefined };
 
-    if (saveProfile && finalForm.label?.trim()) {
-      const updated = [
-        ...profiles.filter((p) => p.label !== finalForm.label),
-        { label: finalForm.label, credentials: { ...finalForm } },
-      ];
-      setProfiles(updated);
-      saveProfiles(updated);
-    }
-
     const result = await window.electron.ssh.connect(finalForm);
 
     setConnecting(false);
 
     if (result.ok && result.data) {
+      // Sync to SSH config (fire-and-forget; don't block the UI)
+      window.electron.sshConfig.write({
+        entry: {
+          host: form.host,
+          hostname: form.host,
+          port: form.port,
+          user: form.username,
+        },
+        privateKeyContent:
+          form.authMethod === "privateKey" ? form.privateKey : undefined,
+      });
+
       onConnected({
         id: result.data,
         credentials: finalForm,
@@ -227,38 +219,31 @@ export function ConnectionDialog({
         </div>
 
         <div className="flex gap-0 h-[520px]">
-          {/* Saved profiles sidebar */}
-          {profiles.length > 0 && (
+          {/* SSH config profiles sidebar */}
+          {configProfiles.length > 0 && (
             <div className="w-40 border-r border-surface-800 overflow-y-auto flex-shrink-0">
               <div className="px-3 py-2 text-xs text-surface-500 font-medium uppercase tracking-wide">
-                Saved
+                Profiles
               </div>
-              {profiles.map((p, i) => (
+              {configProfiles.map((p) => (
                 <div
-                  key={i}
-                  className="group flex items-center justify-between px-3 py-2 hover:bg-surface-800/60 cursor-pointer transition-colors"
-                  onClick={() => loadProfile(p)}
+                  key={p.host}
+                  className="group flex items-center gap-1.5 px-3 py-2 hover:bg-surface-800/60 cursor-pointer transition-colors"
+                  onClick={() => loadConfigProfile(p)}
+                  title={`${p.user}@${p.hostname}:${p.port}`}
                 >
-                  <span className="text-xs text-surface-300 truncate font-mono">
-                    {p.label || p.credentials.host}
-                  </span>
-                  <button
-                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-danger transition-all text-surface-600"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteProfile(i);
-                    }}
-                    title="Delete profile"
+                  <svg
+                    width="9"
+                    height="9"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    className="text-accent-400 flex-shrink-0"
                   >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 16 16"
-                      fill="currentColor"
-                    >
-                      <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-                    </svg>
-                  </button>
+                    <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm5.904-2.803a.5.5 0 1 0-.707.707L6.586 7.293l-1.39 1.39a.5.5 0 0 0 .707.707l1.39-1.39 1.39 1.39a.5.5 0 0 0 .707-.707L8 7.293l1.39-1.39a.5.5 0 0 0-.707-.707L7.293 6.586l-1.39-1.389z" />
+                  </svg>
+                  <span className="text-xs text-surface-300 truncate font-mono">
+                    {p.host}
+                  </span>
                 </div>
               ))}
             </div>
@@ -509,47 +494,21 @@ export function ConnectionDialog({
               )}
             </div>
 
-            {/* Proxy toggle + Save profile row */}
-            <div className="flex items-center gap-4 pt-1">
-              <div className="flex items-center gap-2">
-                <input
-                  id="use-proxy"
-                  type="checkbox"
-                  className="w-3.5 h-3.5 accent-accent-500 rounded"
-                  checked={useProxy}
-                  onChange={(e) => setUseProxy(e.target.checked)}
-                />
-                <label
-                  htmlFor="use-proxy"
-                  className="text-xs text-surface-400 cursor-pointer"
-                >
-                  SSH via Proxy / Jump Host
-                </label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  id="save-profile"
-                  type="checkbox"
-                  className="w-3.5 h-3.5 accent-accent-500 rounded"
-                  checked={saveProfile}
-                  onChange={(e) => setSaveProfile(e.target.checked)}
-                />
-                <label
-                  htmlFor="save-profile"
-                  className="text-xs text-surface-400 cursor-pointer"
-                >
-                  Save as profile
-                </label>
-                {saveProfile && (
-                  <input
-                    className="input ml-1 h-6 py-0 text-xs w-32"
-                    placeholder="Profile name"
-                    value={form.label ?? ""}
-                    onChange={(e) => set("label", e.target.value)}
-                  />
-                )}
-              </div>
+            {/* Proxy toggle */}
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                id="use-proxy"
+                type="checkbox"
+                className="w-3.5 h-3.5 accent-accent-500 rounded"
+                checked={useProxy}
+                onChange={(e) => setUseProxy(e.target.checked)}
+              />
+              <label
+                htmlFor="use-proxy"
+                className="text-xs text-surface-400 cursor-pointer"
+              >
+                SSH via Proxy / Jump Host
+              </label>
             </div>
 
             {/* Error */}

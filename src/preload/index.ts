@@ -15,6 +15,9 @@ import type {
   TerminalDimensions,
   SSHConnection,
   DirectoryListing,
+  SSHConfigProfile,
+  SSHConfigWriteRequest,
+  SSHConfigDeleteRequest,
 } from "../shared/types";
 
 // ─── Electron API exposed to the renderer via context bridge ────────────────
@@ -99,6 +102,24 @@ const electronAPI = {
       connectionId: string;
       path: string;
     }): Promise<IPCResult> => ipcRenderer.invoke(IPC.SHELL_OPEN_VSCODE, req),
+  },
+
+  // SSH config file management
+  sshConfig: {
+    getPath: (): Promise<IPCResult<string>> =>
+      ipcRenderer.invoke(IPC.SSH_CONFIG_GET_PATH),
+
+    setPath: (configPath: string): Promise<IPCResult> =>
+      ipcRenderer.invoke(IPC.SSH_CONFIG_SET_PATH, configPath),
+
+    read: (configPath: string): Promise<IPCResult<SSHConfigProfile[]>> =>
+      ipcRenderer.invoke(IPC.SSH_CONFIG_READ, configPath),
+
+    write: (req: SSHConfigWriteRequest): Promise<IPCResult> =>
+      ipcRenderer.invoke(IPC.SSH_CONFIG_WRITE, req),
+
+    delete: (req: SSHConfigDeleteRequest): Promise<IPCResult> =>
+      ipcRenderer.invoke(IPC.SSH_CONFIG_DELETE, req),
   },
 };
 
