@@ -349,7 +349,8 @@ export class SSHManager extends EventEmitter {
           });
           stream.on("close", (code: number) => {
             if (code === 0) resolve();
-            else reject(new Error(stderr.trim() || `cp exited with code ${code}`));
+            else
+              reject(new Error(stderr.trim() || `cp exited with code ${code}`));
           });
         },
       );
