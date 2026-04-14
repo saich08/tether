@@ -18,8 +18,6 @@ export interface SSHCredentials {
   password?: string;
   privateKey?: string;
   passphrase?: string;
-  /** Optional display label */
-  label?: string;
   /** Optional jump/proxy host */
   proxy?: SSHProxyConfig;
 }
