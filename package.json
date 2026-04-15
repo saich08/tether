@@ -1,7 +1,7 @@
 {
   "name": "tether",
   "version": "1.0.5",
-  "description": "Cross-platform SSH client with terminal and file explorer",
+  "description": "SSH client for Windows and macOS with terminal and file explorer",
   "main": "out/main/index.js",
   "homepage": "https://github.com/saich08/tether",
   "author": "saich08",
@@ -20,7 +20,6 @@
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac",
-    "dist:linux": "npm run build && electron-builder --linux",
     "release": "node .scripts/release.js"
   },
   "dependencies": {
