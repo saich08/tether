@@ -3,7 +3,7 @@
 [![Build](https://github.com/saich08/tether/actions/workflows/build.yml/badge.svg)](https://github.com/saich08/tether/actions/workflows/build.yml)
 [![Release](https://github.com/saich08/tether/actions/workflows/release.yml/badge.svg)](https://github.com/saich08/tether/actions/workflows/release.yml)
 
-A cross-platform SSH client with an integrated terminal and file explorer. Tether is built on Electron, React, and xterm.js, giving you a native desktop experience for managing remote servers.
+A multi-platfrom SSH client with an integrated terminal and file explorer. Tether is built on Electron, React, and xterm.js, giving you a native desktop experience for managing remote servers.
 
 ## Features
 
@@ -13,7 +13,7 @@ A cross-platform SSH client with an integrated terminal and file explorer. Tethe
 - **Session tabs** — manage multiple simultaneous SSH sessions in a tabbed interface
 - **Split pane** — view the terminal and file explorer side-by-side in a resizable split layout
 - **Copy/paste support** — native clipboard integration in the terminal
-- **Cross-platform** — packaged for Windows (NSIS installer + portable), macOS (DMG), and Linux (AppImage, Snap, deb)
+- **Multi-platform** — packaged for Windows (NSIS + Portable installer) and macOS (DMG)
 
 ## Prerequisites
 
@@ -44,9 +44,8 @@ npm run dist
 Platform-specific builds:
 
 ```bash
-npm run dist:win    # Windows (NSIS installer + portable)
+npm run dist:win    # Windows (NSIS + Portable installer)
 npm run dist:mac    # macOS (DMG)
-npm run dist:linux  # Linux (AppImage, Snap, deb)
 ```
 
 Built artifacts are written to the `dist/` directory.

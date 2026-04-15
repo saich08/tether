@@ -47,23 +47,6 @@ mac:
 dmg:
   artifactName: ${name}-${version}.${ext}
 
-linux:
-  target:
-    - target: AppImage
-      arch:
-        - x64
-    - target: snap
-      arch:
-        - x64
-    - target: deb
-      arch:
-        - x64
-  maintainer: saich08
-  category: Utility
-
-appImage:
-  artifactName: ${name}-${version}.${ext}
-
 npmRebuild: false
 
 publish:
