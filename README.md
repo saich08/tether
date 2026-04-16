@@ -3,7 +3,7 @@
 [![Build](https://github.com/saich08/tether/actions/workflows/build.yml/badge.svg)](https://github.com/saich08/tether/actions/workflows/build.yml)
 [![Release](https://github.com/saich08/tether/actions/workflows/release.yml/badge.svg)](https://github.com/saich08/tether/actions/workflows/release.yml)
 
-A multi-platfrom SSH client with an integrated terminal and file explorer. Tether is built on Electron, React, and xterm.js, giving you a native desktop experience for managing remote servers.
+A multi-platform SSH client with an integrated terminal and file explorer. Tether is built on Electron, React, and xterm.js, giving you a native desktop experience for managing remote servers.
 
 ## Features
 
