@@ -58,8 +58,10 @@ async function main() {
     // 6. Bump version, commit, and tag on the release branch
     pkg.version = version;
     fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+    run('npm install');
+    run('npm run build');
     run('git add package.json package-lock.json');
-    run(`git commit -m "chore: bump version to ${version}"`);
+    run(`git commit -m "Bump release version to ${version}"`);
     run(`git tag -a v${version} -m "Release version ${version}"`);
 
     // 7. Push release branch
