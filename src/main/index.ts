@@ -3,6 +3,7 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { SSHManager } from "./ssh-manager";
 import { registerIpcHandlers } from "./ipc-handlers";
+import icon from "../../resources/tether.png?asset";
 
 let mainWindow: BrowserWindow | null = null;
 const sshManager = new SSHManager();
@@ -15,7 +16,7 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     show: false,
     frame: false,
-    icon: join(__dirname, "../../resources/tether.png"),
+    icon,
     titleBarStyle: "hidden",
     titleBarOverlay: {
       color: "#0e1020",
